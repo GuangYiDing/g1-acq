@@ -77,7 +77,7 @@ test("combined module maps 2TB, 20TB and 30TB while preserving unrelated full to
   assert.equal(record.hitCount, 5);
   assert.equal(record.annualHitCount, 3);
   assert.equal(record.status, "rewritten");
-  assert.equal(record.version, "g1-acq-v7.1");
+  assert.equal(record.version, "g1-acq-v7.2");
   assert.deepEqual(record.matchedFrom, [
     { id: TWENTY, to: TWENTY_TARGET, count: 1, fallback: false },
     { id: OTHER_SOURCE, to: TARGET, count: 1, fallback: false },
@@ -146,6 +146,28 @@ test("multi-account /u/N/ plan URLs are rewritten too", () => {
     assert.deepEqual(JSON.parse(result.payload.body), [TWENTY_TARGET, THIRTY_TARGET]);
     assert.equal(get(result.storage, TEST_KEY).status, "rewritten");
   }
+});
+
+test("web-only alias g1.20tb.v2 is rewritten and probed with redaction", () => {
+  const body = JSON.stringify({ plan: "g1.20tb.v2", buyer: "a@b.co", id: 123456789012 });
+  const result = run("g1-acq.js", { body });
+  assert.equal(JSON.parse(result.payload.body).plan, TWENTY_TARGET);
+  const record = get(result.storage, TEST_KEY);
+  assert.equal(record.aliasSeen, 1);
+  assert.equal(record.status, "rewritten");
+  assert.equal(record.samples.length, 1);
+  assert(!record.samples[0].includes("a@b.co"));
+  assert(!record.samples[0].includes("123456789012"));
+  assert(record.samples[0].includes("g1.20tb.v2"));
+});
+
+test("alias probe caps stored samples and leaves unrelated 20TB tokens alone", () => {
+  const body = ["g1.20tb.v2", "g1.20tb.v2.m", "g1.20tb.v2", "g1.20tb.v2", "g1.20tb.v2", "g1.20tb.v2"].join(" ");
+  const result = run("g1-acq.js", { body });
+  const record = get(result.storage, TEST_KEY);
+  assert.equal(record.aliasSeen, 5);
+  assert.equal(record.samples.length, 4);
+  assert.equal(result.payload.body.split(" ")[1], "g1.20tb.v2.m");
 });
 
 test("storage errors do not prevent a matched response from completing", () => {
@@ -239,7 +261,7 @@ test("report exports each actual target and separates annual hits from total hit
   });
   const result = run("g1-sku-report.js", { url: REPORT + "?format=json", storage });
   const data = JSON.parse(result.payload.response.body).test;
-  assert.equal(data.version, "g1-acq-v7.1");
+  assert.equal(data.version, "g1-acq-v7.2");
   assert.equal(data.hitCount, 3);
   assert.equal(data.annualHitCount, 1);
   assert.equal(data.matchedFrom.find(row => row.id === TWENTY).to, TWENTY_TARGET);
@@ -321,7 +343,7 @@ test("the new installer replaces the old entry and all modules share one fixed r
     if (file === "g1-acq-v7.sgmodule") assert.match(module, /^#!name=G1 ACQ$/m);
     for (const script of scripts) {
       const url = script.match(/script-path=([^,\s]+)/)[1];
-      assert.match(url, /^https:\/\/cdn\.jsdelivr\.net\/gh\/[^/]+\/g1-acq@v7\.1\.0\/[a-z0-9.-]+\.js$/);
+      assert.match(url, /^https:\/\/cdn\.jsdelivr\.net\/gh\/[^/]+\/g1-acq@v7\.\d+\.\d+\/[a-z0-9.-]+\.js$/);
       const base = url.slice(0, url.lastIndexOf("/") + 1);
       if (!scriptBase) scriptBase = base;
       assert.equal(base, scriptBase);

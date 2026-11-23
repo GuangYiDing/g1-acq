@@ -2,18 +2,25 @@
 "use strict";
 
 (function () {
-  var VERSION = "g1-acq-v7.1";
+  var VERSION = "g1-acq-v7.2";
   var SOURCE_PREFIX = "g1.ios.2tb.";
   var TARGET = "g1.2tb.ai.annual";
   var SKU_MAP = {
     "g1.ios.20tb.m.v2": "g1.20tb.3months_ip_90p.acq",
     "g1.ios.30tb.ai.pro.m": "g1.ai.ultra.3months_ip_90p.acq"
   };
+  // IDs actually observed in web responses (not StoreKit product IDs).
+  // Kept apart from SKU_MAP so the probe can be disabled without touching v6 rules.
+  var ALIAS_MAP = {
+    "g1.20tb.v2": "g1.20tb.3months_ip_90p.acq"
+  };
   var FALLBACK = {
     "g1.20tb.3months_ip_90p.acq": "g1.20tb.3months_ip_75p.acq",
     "g1.ai.ultra.3months_ip_90p.acq": "g1.ai.ultra.3months_ip_75p.acq"
   };
   var STORE_KEY = "g1.pro.annual.test.v1";
+  var SAMPLE_LIMIT = 4;
+  var SAMPLE_WIDTH = 70;
   var url = typeof $request === "object" && $request ? $request.url : "";
 
   if (typeof url !== "string" || !/^https:\/\/one\.google\.com\/(?:u\/\d+\/)?ai\?/.test(url)) {
@@ -25,12 +32,43 @@
   var mappings = Object.create(null);
   var hits = 0;
   var annualHits = 0;
+  var aliasSeen = 0;
+  var samples = [];
   var out = body;
+
+  function scrub(value) {
+    return value
+      .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "<email>")
+      .replace(/\d{9,}/g, "<number>")
+      .replace(/[\u0000-\u001f]/g, " ");
+  }
+
+  function probePattern() {
+    var alternatives = Object.keys(ALIAS_MAP).map(function (id) {
+      return id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }).join("|");
+    return new RegExp("(^|[^A-Za-z0-9._-])(" + alternatives + ")(?=$|[^A-Za-z0-9._-])", "g");
+  }
+
+  function probe(text) {
+    var pattern = probePattern();
+    var found;
+    while ((found = pattern.exec(text)) !== null) {
+      var at = found.index + found[1].length;
+      aliasSeen += 1;
+      if (samples.length < SAMPLE_LIMIT) {
+        samples.push(scrub(text.slice(Math.max(0, at - SAMPLE_WIDTH),
+          at + found[2].length + SAMPLE_WIDTH)));
+      }
+      pattern.lastIndex = at + found[2].length;
+    }
+  }
 
   if (typeof body === "string") {
     // Preserve v6's 20TB/30TB fallback rule using the original response.
     // These are observed strings, not a verified store catalog.
     var observed = body.match(/g1\.[a-z0-9._]{2,60}acq/g) || [];
+    probe(body);
     // Match complete tokens before selecting 2TB or the two existing source IDs.
     out = body.replace(
       /(^|[^A-Za-z0-9._@%-])(g1\.[A-Za-z0-9._-]+)(?=$|[^A-Za-z0-9._-])/g,
@@ -42,12 +80,14 @@
           to = TARGET;
         } else if (Object.prototype.hasOwnProperty.call(SKU_MAP, id)) {
           to = SKU_MAP[id];
-          if (observed.indexOf(to) === -1 && FALLBACK[to] && observed.indexOf(FALLBACK[to]) !== -1) {
-            to = FALLBACK[to];
-            fallback = true;
-          }
+        } else if (Object.prototype.hasOwnProperty.call(ALIAS_MAP, id)) {
+          to = ALIAS_MAP[id];
         } else {
           return match;
+        }
+        if (FALLBACK[to] && observed.indexOf(to) === -1 && observed.indexOf(FALLBACK[to]) !== -1) {
+          to = FALLBACK[to];
+          fallback = true;
         }
         if (!mappings[id]) mappings[id] = { id: id, to: to, count: 0, fallback: fallback };
         mappings[id].count += 1;
@@ -69,6 +109,8 @@
     target: TARGET,
     hitCount: hits,
     annualHitCount: annualHits,
+    aliasSeen: aliasSeen,
+    samples: samples,
     matchedFrom: sources,
     status: typeof body !== "string" ? "non-text" : hits ? "rewritten" : "no-match"
   };
@@ -84,7 +126,8 @@
     console.log("[g1-acq] local record unavailable");
   }
 
-  console.log("[g1-acq] " + VERSION + " hits=" + hits + " annualHits=" + annualHits);
+  console.log("[g1-acq] " + VERSION + " hits=" + hits + " annualHits=" + annualHits +
+    " aliasSeen=" + aliasSeen);
   sources.forEach(function (source) {
     console.log("[g1-acq] " + source.id + " -> " + source.to + " x" + source.count +
       (source.fallback ? " fallback=75p" : ""));

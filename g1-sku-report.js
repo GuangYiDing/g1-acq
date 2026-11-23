@@ -58,6 +58,15 @@
     }).sort(function (a, b) { return a.id < b.id ? -1 : a.id > b.id ? 1 : 0; });
   }
 
+  function lines(value) {
+    if (!Array.isArray(value)) return [];
+    return value.slice(0, 4).filter(function (row) {
+      return typeof row === "string" && row.length > 0;
+    }).map(function (row) {
+      return row.slice(0, 160).replace(/[^\x20-\x7e]/g, " ");
+    });
+  }
+
   var scanRaw = load(SCAN_KEY);
   var testRaw = load(TEST_KEY);
   var matchedFrom = rows(testRaw.matchedFrom, false);
@@ -84,6 +93,8 @@
       status: text(testRaw.status, 32),
       hitCount: count(testRaw.hitCount),
       annualHitCount: annualHitCount,
+      aliasSeen: count(testRaw.aliasSeen),
+      samples: lines(testRaw.samples),
       matchedFrom: matchedFrom
     }
   };
@@ -129,7 +140,7 @@
   var html = [
     "<!doctype html><html lang=zh-CN><meta charset=utf-8>",
     "<meta name=viewport content=\"width=device-width,initial-scale=1\"><title>Google One SKU 本地报告</title>",
-    "<style>body{font:16px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;max-width:960px;margin:24px auto;padding:0 18px;color:#1c2737;background:#f5f7fa}section{background:white;border:1px solid #dde3ec;border-radius:12px;padding:18px;margin:18px 0}h1{font-size:24px}h2{font-size:20px}code{overflow-wrap:anywhere}a{color:#1259be;margin-right:18px}table{border-collapse:collapse;width:100%;font-size:14px}td,th{padding:9px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}.scroll{overflow:auto}.note{color:#46556b}button{font:inherit;padding:8px 14px}</style>",
+    "<style>body{font:16px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;max-width:960px;margin:24px auto;padding:0 18px;color:#1c2737;background:#f5f7fa}section{background:white;border:1px solid #dde3ec;border-radius:12px;padding:18px;margin:18px 0}h1{font-size:24px}h2{font-size:20px}code{overflow-wrap:anywhere}a{color:#1259be;margin-right:18px}table{border-collapse:collapse;width:100%;font-size:14px}td,th{padding:9px;border-bottom:1px solid #ddd;text-align:left;vertical-align:top}.scroll{overflow:auto}.note{color:#46556b}button{font:inherit;padding:8px 14px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;background:#eef2f8;border:1px solid #dde3ec;border-radius:8px;padding:10px}</style>",
     "<h1>Google One SKU 本地报告</h1>",
     "<p class=note>此页由手机上的 Shadowrocket 脚本生成；没有向外发送采集数据。</p>",
     "<p><a href=\"" + ROOT + "\">刷新</a><a href=\"" + ROOT + "?format=json\">导出 JSON</a></p>",
@@ -140,6 +151,13 @@
     "<p>2TB 源前缀：<code>g1.ios.2tb.</code><br>2TB 固定目标：<code>g1.2tb.ai.annual</code><br>20TB / 30TB 沿用旧优惠映射与 75p 回退；各档实际目标见下表。<br>执行时间（UTC）：" + escape(report.test.updatedAt || "暂无") + "</p>",
     "<p class=note>这里记录的是脚本执行结果；商品是否被 App Store 识别、价格和周期需查看购买面板。</p>",
     table(report.test.matchedFrom, false), "</section>",
+    "<section><h2>网页别名探测（v7.2 实验）</h2>",
+    "<p>别名 <code>g1.20tb.v2</code> 在本次响应中出现：" + report.test.aliasSeen + " 次</p>",
+    report.test.samples.length ?
+      "<p class=note>以下为原文截段（邮箱与长数字已替换），用于判断它是套餐 ID 还是埋点参数：</p>" +
+        "<pre>" + report.test.samples.map(escape).join("\n\n") + "</pre>" :
+      "<p>本次响应里没有出现该别名；说明它来自其它地址，不在 <code>/ai?</code> 正文里。</p>",
+    "</section>",
     "<section><h2>浏览页面时采集到的候选 SKU</h2>",
     "<p>扫描文本响应：" + report.scan.scannedResponses + "；含候选 SKU 的响应：" + report.scan.matchedResponses + "；累计编号：" + report.scan.skus.length + "</p>",
     "<p class=note>数据来自 one.google.com 已浏览页面中的字符串，并非商店的完整商品目录；此采集器保持原响应正文。</p>",
