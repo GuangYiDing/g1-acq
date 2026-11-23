@@ -5,6 +5,7 @@
   var ROOT = "https://one.google.com/g1-sku-report";
   var SCAN_KEY = "g1.sku.scan.v1";
   var TEST_KEY = "g1.pro.annual.test.v1";
+  var URL_KEY = "g1.url.log.v1";
   var url = typeof $request === "object" && $request ? $request.url : "";
   if (typeof url !== "string" || !/^https:\/\/one\.google\.com\/g1-sku-report(?:\?|$)/.test(url)) {
     $done({});
@@ -18,7 +19,9 @@
     try {
       var scanCleared = $persistentStore.write("{}", SCAN_KEY);
       var testCleared = $persistentStore.write("{}", TEST_KEY);
-      clearMessage = scanCleared && testCleared ? "本工具的两份本地记录已清空。" : "本地记录清空未完成。";
+      var urlCleared = $persistentStore.write("{}", URL_KEY);
+      clearMessage = scanCleared && testCleared && urlCleared ?
+        "本工具的三份本地记录已清空。" : "本地记录清空未完成。";
     } catch (error) {
       clearMessage = "本地存储接口暂未就绪。";
     }
@@ -67,6 +70,20 @@
     });
   }
 
+  function urlRows(value) {
+    if (value && Array.isArray(value.logs)) {
+      return value.logs.slice(-15).filter(function (row) {
+        return row && typeof row.u === "string";
+      }).map(function (row) {
+        return {
+          u: row.u.slice(0, 260).replace(/[^\x20-\x7e]/g, " "),
+          t: typeof row.t === "string" ? row.t.slice(0, 8) : ""
+        };
+      });
+    }
+    return [];
+  }
+
   var scanRaw = load(SCAN_KEY);
   var testRaw = load(TEST_KEY);
   var matchedFrom = rows(testRaw.matchedFrom, false);
@@ -96,7 +113,8 @@
       aliasSeen: count(testRaw.aliasSeen),
       samples: lines(testRaw.samples),
       matchedFrom: matchedFrom
-    }
+    },
+    urlLog: urlRows(load(URL_KEY))
   };
 
   var headers = {
@@ -157,6 +175,14 @@
       "<p class=note>以下为原文截段（邮箱与长数字已替换），用于判断它是套餐 ID 还是埋点参数：</p>" +
         "<pre>" + report.test.samples.map(escape).join("\n\n") + "</pre>" :
       "<p>本次响应里没有出现该别名；说明它来自其它地址，不在 <code>/ai?</code> 正文里。</p>",
+    "</section>",
+    "<section><h2>订阅相关请求 URL（v7.3 诊断）</h2>",
+    "<p>最近 " + report.urlLog.length + " 条 one.google.com 请求（本机记录，未外发）：</p>",
+    report.urlLog.length ?
+      "<pre>" + report.urlLog.map(function (row) {
+        return escape((row.t ? row.t + "  " : "") + row.u);
+      }).join("\n") + "</pre>" :
+      "<p>暂无记录。打开方案页并点一次「订阅」后再回来看。</p>",
     "</section>",
     "<section><h2>浏览页面时采集到的候选 SKU</h2>",
     "<p>扫描文本响应：" + report.scan.scannedResponses + "；含候选 SKU 的响应：" + report.scan.matchedResponses + "；累计编号：" + report.scan.skus.length + "</p>",

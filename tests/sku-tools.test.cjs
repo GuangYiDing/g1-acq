@@ -20,7 +20,7 @@ const THIRTY_TARGET = "g1.ai.ultra.3months_ip_90p.acq";
 const TWENTY_FALLBACK = "g1.20tb.3months_ip_75p.acq";
 const THIRTY_FALLBACK = "g1.ai.ultra.3months_ip_75p.acq";
 const source = Object.fromEntries(
-  ["g1-acq.js", "tests/fixtures/g1-acq-v6.js", "g1-sku-scan.js", "g1-sku-report.js"].map(name =>
+  ["g1-acq.js", "tests/fixtures/g1-acq-v6.js", "g1-sku-scan.js", "g1-sku-report.js", "g1-url-log.js"].map(name =>
     [name, fs.readFileSync(path.join(root, name), "utf8")])
 );
 
@@ -310,17 +310,33 @@ test("JSON export is limited to report fields and escapes untrusted HTML text", 
   assert(htmlResult.payload.response.body.includes("&lt;img src=x&gt;"));
 });
 
-test("clear action affects only the tool's two storage keys", () => {
+test("url log keeps only one.google.com paths and redacts credentials", () => {
+  const storage = new Map();
+  const target = "https://one.google.com/checkout?plan=g1.20tb.v2&token=abcd1234";
+  run("g1-url-log.js", { url: target, storage });
+  run("g1-url-log.js", { url: target, storage });
+  run("g1-url-log.js", { url: "https://example.test/checkout?plan=g1.20tb.v2", storage });
+  run("g1-url-log.js", { url: REPORT + "?format=json", storage });
+  const state = get(storage, "g1.url.log.v1");
+  assert.equal(state.logs.length, 1);
+  assert(state.logs[0].u.includes("plan=g1.20tb.v2"));
+  assert(!state.logs[0].u.includes("abcd1234"));
+  assert(!JSON.stringify(state).includes("secret"));
+});
+
+test("clear action affects only the tool's three storage keys", () => {
   const storage = new Map([
     [SCAN_KEY, JSON.stringify({ schemaVersion: 1, skus: [{ id: SOURCE, count: 1 }] })],
     [TEST_KEY, JSON.stringify({ schemaVersion: 1, hitCount: 1 })],
+    ["g1.url.log.v1", JSON.stringify({ schemaVersion: 1, logs: [{ u: "https://one.google.com/x", t: "00:00:00" }] })],
     ["other-tool", "untouched"]
   ]);
   const result = run("g1-sku-report.js", { url: REPORT + "?clear=1", storage });
   assert.deepEqual(get(storage, SCAN_KEY), {});
   assert.deepEqual(get(storage, TEST_KEY), {});
+  assert.deepEqual(get(storage, "g1.url.log.v1"), {});
   assert.equal(storage.get("other-tool"), "untouched");
-  assert.deepEqual(new Set(result.reads), new Set([SCAN_KEY, TEST_KEY]));
+  assert.deepEqual(new Set(result.reads), new Set([SCAN_KEY, TEST_KEY, "g1.url.log.v1"]));
 });
 
 test("report handles unavailable storage and skips other URL paths", () => {
@@ -339,9 +355,13 @@ test("the new installer replaces the old entry and all modules share one fixed r
   for (const file of ["g1-acq-v7.sgmodule", "g1-pro-annual-test.sgmodule", "g1-sku-scan.sgmodule"]) {
     const module = fs.readFileSync(path.join(root, file), "utf8");
     const scripts = module.split("\n").filter(line => line.includes("script-path="));
-    assert.equal(scripts.length, 2);
+    assert.equal(scripts.length, file === "g1-acq-v7.sgmodule" ? 3 : 2);
     if (file === "g1-acq-v7.sgmodule") assert.match(module, /^#!name=G1 ACQ$/m);
     for (const script of scripts) {
+      if (script.includes("g1-url-log.js")) {
+        assert.match(script, /^g1-url-log = type=http-request,pattern=\^https:\\\/\\\/one\\\.google\\\.com\\\//);
+        continue;
+      }
       const url = script.match(/script-path=([^,\s]+)/)[1];
       assert.match(url, /^https:\/\/cdn\.jsdelivr\.net\/gh\/[^/]+\/g1-acq@v7\.\d+\.\d+\/[a-z0-9.-]+\.js$/);
       const base = url.slice(0, url.lastIndexOf("/") + 1);
