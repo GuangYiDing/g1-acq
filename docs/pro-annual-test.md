@@ -1,6 +1,6 @@
 # Pro 年付测试与 SKU 扫描
 
-**G1 ACQ** 已合并三档改写：把订阅页中实际出现、前缀为 `g1.ios.2tb.` 的 **原始 iOS 2TB 完整 SKU** 改为 `g1.2tb.ai.annual`，同时保留 20TB / 30TB 优惠映射与各档独立的 75p 回退逻辑。2TB 年付目标没有备用档；20TB / 30TB 的完整源 ID 与目标见第 4 节。当前响应脚本版本为 `g1-acq-v7.1`，一个 **G1 ACQ** 即可覆盖三档。
+**G1 ACQ** 已合并三档改写：把订阅页中实际出现、前缀为 `g1.ios.2tb.` 的 **原始 iOS 2TB 完整 SKU** 改为 `g1.2tb.ai.annual`，同时保留 20TB / 30TB 优惠映射与各档独立的 75p 回退逻辑。2TB 年付目标没有备用档；20TB / 30TB 的完整源 ID 与目标见第 4 节。当前响应脚本版本为 `g1-acq-v7.4`，一个 **G1 ACQ** 即可覆盖三档。
 
 `g1.2tb.ai.annual` 在 Google Play 公开记录中对应 Pro、`P1Y`（一年）、`US$199.99`。这条记录只说明 Play 中的商品信息，不确认 iOS 可购买，也不确认 iOS 一折价格。目前已证实匹配逻辑与脚本离线测试，App Store 识别结果、商品名称、周期、初次与续费金额均待实机核对。
 
@@ -9,7 +9,7 @@
 **G1 ACQ — 原始 iOS 2TB 年付测试，合并 20TB / 30TB 映射**
 
 ```text
-https://cdn.jsdelivr.net/gh/GuangYiDing/g1-acq@v7.1.0/g1-acq-v7.sgmodule
+https://cdn.jsdelivr.net/gh/GuangYiDing/g1-acq@v7.4.0/g1-acq-v7.sgmodule
 ```
 
 在小火箭模块管理中删除手机上的旧 **G1 ACQ** 模块，再添加上面的唯一新主安装地址并启用；首次安装也使用该地址。模块名仍为 **G1 ACQ**，安装入口与内部响应、报告脚本均固定引用 `@v7.0.0`，无需单独添加脚本。安装后重新连接，再重新打开 Google App 的方案页。
@@ -38,7 +38,7 @@ https://cdn.jsdelivr.net/gh/GuangYiDing/g1-acq@v7.1.0/g1-acq-v7.sgmodule
 本节记录手机实际加载页面中出现的编号，作为确定源 ID 的依据；需要采集时添加 **G1 SKU Scan**：
 
 ```text
-https://cdn.jsdelivr.net/gh/GuangYiDing/g1-acq@v7.1.0/g1-sku-scan.sgmodule
+https://cdn.jsdelivr.net/gh/GuangYiDing/g1-acq@v7.4.0/g1-sku-scan.sgmodule
 ```
 
 采集模块与内部脚本均固定引用 `@v7.0.0`，并包含同一本地报告页。它与主模块共用两份手机本地记录，切换模块后仍可查看；MITM hostname 与全局 UDP 443 规则和主模块一致。
@@ -92,7 +92,7 @@ https://cdn.jsdelivr.net/gh/GuangYiDing/g1-acq@v7.1.0/g1-sku-scan.sgmodule
 
 | 报告字段 | 含义 |
 |---|---|
-| `test.version` | 生成该执行记录的脚本版本；当前主脚本为 `g1-acq-v7.1` |
+| `test.version` | 生成该执行记录的脚本版本；当前主脚本为 `g1-acq-v7.4` |
 | `test.matchedFrom` | 本次响应实际命中的完整源 ID，逐行格式为 `{id, to, count, fallback}`；`to` 是该源本次实际目标，`count` 是该源的改写次数，`fallback=true` 表示 20TB / 30TB 使用对应 75p 备用档 |
 | `test.target` | 仍专指 2TB 年付目标 `g1.2tb.ai.annual`；20TB / 30TB 的实际目标看各行 `to` |
 | `test.hitCount` | 本次响应三档总改写数；脚本输出中的 `hits=N` 对应此值 |
@@ -102,7 +102,7 @@ https://cdn.jsdelivr.net/gh/GuangYiDing/g1-acq@v7.1.0/g1-sku-scan.sgmodule
 | `test.status = no-match` | 本次文本响应三档完整源 ID 都未命中，响应原样返回 |
 | `test.status = non-text` | 本次响应没有可处理的文本正文，响应原样返回 |
 
-当前日志使用 `[g1-acq]` 前缀，汇总格式为 `g1-acq-v7.1 hits=N annualHits=N`，逐行输出 `源 SKU → 实际目标 xN`；20TB / 30TB 选用备用档时，该行附 `fallback=75p`。报告中的 `to` 与逐行日志对应，主汇总的 `hits` 与 `annualHits` 分别对应 `hitCount` 与 `annualHitCount`。
+当前日志使用 `[g1-acq]` 前缀，汇总格式为 `g1-acq-v7.4 hits=N annualHits=N`，逐行输出 `源 SKU → 实际目标 xN`；20TB / 30TB 选用备用档时，该行附 `fallback=75p`。报告中的 `to` 与逐行日志对应，主汇总的 `hits` 与 `annualHits` 分别对应 `hitCount` 与 `annualHitCount`。
 
 这里保存的是**最近一次匹配 URL 的执行记录**，不是累计测试历史；后续零命中响应也会更新记录。核对时对照执行时间，命中次数仅证明文本替换，不证明 App Store 接受目标商品或已完成订阅。
 
@@ -167,7 +167,7 @@ JSON 中的核心采集字段是 `scan.skus`，每项含 `id`、`count`、`lastS
 采集 / 测试时间（含时区）：[填写]
 iOS / Google App / Shadowrocket 版本：[填写]
 主模块名称：G1 ACQ
-主模块地址：https://cdn.jsdelivr.net/gh/GuangYiDing/g1-acq@v7.1.0/g1-acq-v7.sgmodule
+主模块地址：https://cdn.jsdelivr.net/gh/GuangYiDing/g1-acq@v7.4.0/g1-acq-v7.sgmodule
 主模块发布版本：v7.0.0
 主模块脚本版本：g1-acq-v7
 当前阶段：采集 / 三档合并测试（含 2TB 年付）
