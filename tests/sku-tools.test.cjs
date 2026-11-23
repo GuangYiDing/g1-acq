@@ -77,7 +77,7 @@ test("combined module maps 2TB, 20TB and 30TB while preserving unrelated full to
   assert.equal(record.hitCount, 5);
   assert.equal(record.annualHitCount, 3);
   assert.equal(record.status, "rewritten");
-  assert.equal(record.version, "g1-acq-v7.4");
+  assert.equal(record.version, "g1-acq-v7.5");
   assert.deepEqual(record.matchedFrom, [
     { id: TWENTY, to: TWENTY_TARGET, count: 1, fallback: false },
     { id: OTHER_SOURCE, to: TARGET, count: 1, fallback: false },
@@ -239,7 +239,7 @@ test("report exports each actual target and separates annual hits from total hit
   });
   const result = run("g1-sku-report.js", { url: REPORT + "?format=json", storage });
   const data = JSON.parse(result.payload.response.body).test;
-  assert.equal(data.version, "g1-acq-v7.4");
+  assert.equal(data.version, "g1-acq-v7.5");
   assert.equal(data.hitCount, 3);
   assert.equal(data.annualHitCount, 1);
   assert.equal(data.matchedFrom.find(row => row.id === TWENTY).to, TWENTY_TARGET);

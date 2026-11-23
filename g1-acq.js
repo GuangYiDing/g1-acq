@@ -2,7 +2,7 @@
 "use strict";
 
 (function () {
-  var VERSION = "g1-acq-v7.4";
+  var VERSION = "g1-acq-v7.5";
   var SOURCE_PREFIX = "g1.ios.2tb.";
   var TARGET = "g1.2tb.ai.annual";
   var SKU_MAP = {
@@ -22,12 +22,26 @@
   }
 
   var body = typeof $response === "object" && $response ? $response.body : undefined;
+  var census = { length: 0, head: "", tokens: [] };
   var mappings = Object.create(null);
   var hits = 0;
   var annualHits = 0;
   var out = body;
 
   if (typeof body === "string") {
+    census.length = body.length;
+    var seen = Object.create(null);
+    var found = body.match(/g1\.[A-Za-z0-9._-]{2,40}/g) || [];
+    found.forEach(function (id) {
+      if (census.tokens.length >= 24) return;
+      if (seen[id]) return;
+      seen[id] = true;
+      census.tokens.push(id);
+    });
+    census.head = body.slice(0, 160)
+      .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, "<email>")
+      .replace(/\d{6,}/g, "<number>")
+      .replace(/[\u0000-\u001f\u007f-\uffff]/g, ".");
     // Preserve v6's 20TB/30TB fallback rule using the original response.
     // These are observed strings, not a verified store catalog.
     var observed = body.match(/g1\.[a-z0-9._]{2,60}acq/g) || [];
@@ -69,6 +83,9 @@
     target: TARGET,
     hitCount: hits,
     annualHitCount: annualHits,
+    bodyLength: census.length,
+    bodyHead: census.head,
+    tokens: census.tokens,
     matchedFrom: sources,
     status: typeof body !== "string" ? "non-text" : hits ? "rewritten" : "no-match"
   };

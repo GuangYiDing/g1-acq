@@ -112,6 +112,12 @@
       annualHitCount: annualHitCount,
       aliasSeen: count(testRaw.aliasSeen),
       samples: lines(testRaw.samples),
+      bodyLength: count(testRaw.bodyLength),
+      bodyHead: text(testRaw.bodyHead, 200),
+      tokens: Array.isArray(testRaw.tokens) ?
+        testRaw.tokens.slice(0, 24).filter(function (row) {
+          return typeof row === "string" && row.length > 0;
+        }).map(function (row) { return row.slice(0, 60); }) : [],
       matchedFrom: matchedFrom
     },
     urlLog: urlRows(load(URL_KEY))
@@ -169,12 +175,13 @@
     "<p>2TB 源前缀：<code>g1.ios.2tb.</code><br>2TB 固定目标：<code>g1.2tb.ai.annual</code><br>20TB / 30TB 沿用旧优惠映射与 75p 回退；各档实际目标见下表。<br>执行时间（UTC）：" + escape(report.test.updatedAt || "暂无") + "</p>",
     "<p class=note>这里记录的是脚本执行结果；商品是否被 App Store 识别、价格和周期需查看购买面板。</p>",
     table(report.test.matchedFrom, false), "</section>",
-    "<section><h2>网页别名探测（v7.2 实验）</h2>",
-    "<p>别名 <code>g1.20tb.v2</code> 在本次响应中出现：" + report.test.aliasSeen + " 次</p>",
-    report.test.samples.length ?
-      "<p class=note>以下为原文截段（邮箱与长数字已替换），用于判断它是套餐 ID 还是埋点参数：</p>" +
-        "<pre>" + report.test.samples.map(escape).join("\n\n") + "</pre>" :
-      "<p>本次响应里没有出现该别名；说明它来自其它地址，不在 <code>/ai?</code> 正文里。</p>",
+    "<section><h2>原始响应普查（v7.5 诊断）</h2>",
+    "<p>响应长度：" + report.test.bodyLength + " 字符；其中的 <code>g1.*</code> 编号共 " + report.test.tokens.length + " 个。</p>",
+    report.test.tokens.length ?
+      "<pre>" + report.test.tokens.map(escape).join("\n") + "</pre>" :
+      "<p>本次响应正文里没有出现任何 <code>g1.*</code> 编号。</p>",
+    report.test.bodyHead ?
+      "<p class=note>正文开头 160 字符（控制字符已替换）：</p><pre>" + escape(report.test.bodyHead) + "</pre>" : "",
     "</section>",
     "<section><h2>订阅相关请求 URL（v7.3 诊断）</h2>",
     "<p>最近 " + report.urlLog.length + " 条 one.google.com 请求（本机记录，未外发）：</p>",
