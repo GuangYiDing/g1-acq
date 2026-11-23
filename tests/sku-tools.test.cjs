@@ -77,7 +77,7 @@ test("combined module maps 2TB, 20TB and 30TB while preserving unrelated full to
   assert.equal(record.hitCount, 5);
   assert.equal(record.annualHitCount, 3);
   assert.equal(record.status, "rewritten");
-  assert.equal(record.version, "g1-acq-v7");
+  assert.equal(record.version, "g1-acq-v7.1");
   assert.deepEqual(record.matchedFrom, [
     { id: TWENTY, to: TWENTY_TARGET, count: 1, fallback: false },
     { id: OTHER_SOURCE, to: TARGET, count: 1, fallback: false },
@@ -127,12 +127,24 @@ test("fallback decisions are independent and the 2TB target stays fixed", () => 
 test("test script accepts only the agreed query-bearing /ai URL", () => {
   for (const url of [
     "https://one.google.com/ai", "https://one.google.com/ai/other?x=1",
+    "https://one.google.com/u/1/ai", "https://one.google.com/u/x/ai?x=1",
     "https://one.google.com/plans?x=1", "https://one.google.com.evil/ai?x=1",
     "http://one.google.com/ai?x=1"
   ]) {
     const result = run("g1-acq.js", { url, body: SOURCE });
     assert.deepEqual(result.payload, {});
     assert.equal(result.storage.size, 0);
+  }
+});
+
+test("multi-account /u/N/ plan URLs are rewritten too", () => {
+  for (const url of [
+    "https://one.google.com/u/0/ai?g1_landing_page=75",
+    "https://one.google.com/u/12/ai?hl=zh-TW"
+  ]) {
+    const result = run("g1-acq.js", { url, body: JSON.stringify([TWENTY, THIRTY]) });
+    assert.deepEqual(JSON.parse(result.payload.body), [TWENTY_TARGET, THIRTY_TARGET]);
+    assert.equal(get(result.storage, TEST_KEY).status, "rewritten");
   }
 });
 
@@ -227,7 +239,7 @@ test("report exports each actual target and separates annual hits from total hit
   });
   const result = run("g1-sku-report.js", { url: REPORT + "?format=json", storage });
   const data = JSON.parse(result.payload.response.body).test;
-  assert.equal(data.version, "g1-acq-v7");
+  assert.equal(data.version, "g1-acq-v7.1");
   assert.equal(data.hitCount, 3);
   assert.equal(data.annualHitCount, 1);
   assert.equal(data.matchedFrom.find(row => row.id === TWENTY).to, TWENTY_TARGET);
@@ -309,7 +321,7 @@ test("the new installer replaces the old entry and all modules share one fixed r
     if (file === "g1-acq-v7.sgmodule") assert.match(module, /^#!name=G1 ACQ$/m);
     for (const script of scripts) {
       const url = script.match(/script-path=([^,\s]+)/)[1];
-      assert.match(url, /^https:\/\/cdn\.jsdelivr\.net\/gh\/crhywun\/g1-acq@v7\.0\.0\/[a-z0-9.-]+\.js$/);
+      assert.match(url, /^https:\/\/cdn\.jsdelivr\.net\/gh\/[^/]+\/g1-acq@v7\.1\.0\/[a-z0-9.-]+\.js$/);
       const base = url.slice(0, url.lastIndexOf("/") + 1);
       if (!scriptBase) scriptBase = base;
       assert.equal(base, scriptBase);
@@ -323,6 +335,8 @@ test("the new installer replaces the old entry and all modules share one fixed r
     assert.equal(pattern.test("https://one.google.com/plans"), file === "g1-sku-scan.sgmodule");
     if (file !== "g1-sku-scan.sgmodule") {
       assert(!pattern.test("https://one.google.com/ai"));
+      assert(pattern.test("https://one.google.com/u/1/ai?x=1"));
+      assert(!pattern.test("https://one.google.com/u/x/ai?x=1"));
       assert.equal(responseLine.match(/script-path=([^,\s]+)/)[1],
         scriptBase + "g1-acq.js");
     }

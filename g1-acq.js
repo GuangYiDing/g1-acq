@@ -2,7 +2,7 @@
 "use strict";
 
 (function () {
-  var VERSION = "g1-acq-v7";
+  var VERSION = "g1-acq-v7.1";
   var SOURCE_PREFIX = "g1.ios.2tb.";
   var TARGET = "g1.2tb.ai.annual";
   var SKU_MAP = {
@@ -16,7 +16,7 @@
   var STORE_KEY = "g1.pro.annual.test.v1";
   var url = typeof $request === "object" && $request ? $request.url : "";
 
-  if (typeof url !== "string" || !/^https:\/\/one\.google\.com\/ai\?/.test(url)) {
+  if (typeof url !== "string" || !/^https:\/\/one\.google\.com\/(?:u\/\d+\/)?ai\?/.test(url)) {
     $done({});
     return;
   }

@@ -16,7 +16,7 @@
   var STORE_KEY = "g1.pro.annual.test.v1";
   var url = typeof $request === "object" && $request ? $request.url : "";
 
-  if (typeof url !== "string" || !/^https:\/\/one\.google\.com\/ai\?/.test(url)) {
+  if (typeof url !== "string" || !/^https:\/\/one\.google\.com\/(?:u\/\d+\/)?ai\?/.test(url)) {
     $done({});
     return;
   }

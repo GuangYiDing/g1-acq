@@ -6,7 +6,7 @@
 
 Google One（iOS）订阅入口的商品 ID 改写与采集工具，适用于 **Shadowrocket / 小火箭**。
 
-**G1 ACQ 已合并三档改写：原始 iOS 2TB → `g1.2tb.ai.annual` 年付测试，20TB / 30TB 保留原有优惠映射与独立回退。** 请删除手机上的旧 **G1 ACQ** 模块，添加下方唯一新主安装地址；模块名仍为 **G1 ACQ**。本次发布固定为 `v7.0.0`，响应脚本版本为 `g1-acq-v7`，完整安装、采集与实机核对步骤见 [Pro 年付测试与 SKU 扫描](docs/pro-annual-test.md)。
+**G1 ACQ 已合并三档改写：原始 iOS 2TB → `g1.2tb.ai.annual` 年付测试，20TB / 30TB 保留原有优惠映射与独立回退。** 请删除手机上的旧 **G1 ACQ** 模块，添加下方唯一新主安装地址；模块名仍为 **G1 ACQ**。本次发布固定为 `v7.1.0`，响应脚本版本为 `g1-acq-v7.1`，完整安装、采集与实机核对步骤见 [Pro 年付测试与 SKU 扫描](docs/pro-annual-test.md)。
 
 > 响应中出现商品 ID，只能证明页面携带该字符串，不等于 App Store 商品目录校验。改写命中也不等于商品可购买；商品名称、周期、初次与续费金额须在 App Store 收银台核对，权益以 Google One 账户实际状态为准。
 
@@ -15,7 +15,7 @@ Google One（iOS）订阅入口的商品 ID 改写与采集工具，适用于 **
 **G1 ACQ：三档合并改写与本地结果页**
 
 ```text
-https://cdn.jsdelivr.net/gh/crhywun/g1-acq@v7.0.0/g1-acq-v7.sgmodule
+https://cdn.jsdelivr.net/gh/GuangYiDing/g1-acq@v7.1.0/g1-acq-v7.sgmodule
 ```
 
 在小火箭模块管理中删除手机上的旧 **G1 ACQ**，再添加上面的新地址并启用；首次安装也使用该地址。模块安装入口与内部响应、报告脚本均固定引用 `@v7.0.0`，无需单独添加脚本；安装后重新连接，再重新进入 Google App 的订阅页。
@@ -42,7 +42,7 @@ https://cdn.jsdelivr.net/gh/crhywun/g1-acq@v7.0.0/g1-acq-v7.sgmodule
 
 ![配置页入口：点击 shadowrocket.conf 右侧的 (i) 图标进入配置编辑，才能看到 HTTPS 解密](docs-config-entry.png)
 
-1. 在小火箭模块管理中删除手机上的旧 **G1 ACQ**，添加上面的 `v7.0.0` 新主安装地址并启用，首页保持 VPN 连接。
+1. 在小火箭模块管理中删除手机上的旧 **G1 ACQ**，添加上面的 `v7.1.0` 新主安装地址并启用，首页保持 VPN 连接。
 2. 从上述当前配置的 **(i)** 入口进入 **HTTPS 解密**，打开解密开关。已有可用且已受信任的 Shadowrocket 证书时直接沿用；尚未配置证书时，在该页生成并安装证书，再完成下两步。
 3. 首次配置证书时，在 iOS **设置 → 通用 → VPN 与设备管理** 中完成 Shadowrocket 描述文件安装。
 4. 首次配置证书时，在 iOS **设置 → 通用 → 关于本机 → 证书信任设置** 中开启对应 Shadowrocket 根证书的信任。
@@ -64,7 +64,7 @@ https://cdn.jsdelivr.net/gh/crhywun/g1-acq@v7.0.0/g1-acq-v7.sgmodule
 需要记录网页中的完整源 ID 时，添加 **G1 SKU Scan**：
 
 ```text
-https://cdn.jsdelivr.net/gh/crhywun/g1-acq@v7.0.0/g1-sku-scan.sgmodule
+https://cdn.jsdelivr.net/gh/GuangYiDing/g1-acq@v7.1.0/g1-sku-scan.sgmodule
 ```
 
 采集模块与内部脚本均固定引用 `@v7.0.0`。它读取 `one.google.com/` 响应中出现的 `g1.*` 与 `com.google.one.*` 字符串，按 ID 去重累计次数，最多保留 300 个 ID；跳过自带结果页，通过 `$done({})` 原样返回响应。手机只保存候选 ID、次数、时间与扫描状态，不查询 App Store，不发网络上报。
@@ -82,7 +82,7 @@ https://cdn.jsdelivr.net/gh/crhywun/g1-acq@v7.0.0/g1-sku-scan.sgmodule
 
 **G1 ACQ** 与 **G1 SKU Scan** 都附本地结果页。在小火箭连接且当前阶段模块开启时，用 Safari 打开[查看本地结果](https://one.google.com/g1-sku-report)或[导出 JSON](https://one.google.com/g1-sku-report?format=json)。该精确路径及其 query 由 Shadowrocket 的 `http-request` 脚本在本机返回页面，不交给 Google 处理。
 
-`test.version` 为生成记录的脚本版本，当前为 `g1-acq-v7`。`test.hitCount` 是三档总改写数，`test.annualHitCount` 仅统计 2TB 年付改写；`test.target` 仍专指 `g1.2tb.ai.annual`。`test.matchedFrom` 每行含 `{id, to, count, fallback}`：`to` 是该源本次实际目标，`fallback=true` 表示 20TB / 30TB 使用对应 75p 备用档。HTML 按行显示实际目标和备用状态。
+`test.version` 为生成记录的脚本版本，当前为 `g1-acq-v7.1`。`test.hitCount` 是三档总改写数，`test.annualHitCount` 仅统计 2TB 年付改写；`test.target` 仍专指 `g1.2tb.ai.annual`。`test.matchedFrom` 每行含 `{id, to, count, fallback}`：`to` 是该源本次实际目标，`fallback=true` 表示 20TB / 30TB 使用对应 75p 备用档。HTML 按行显示实际目标和备用状态。
 
 `status=no-match` 仅表示三档都没命中，此时保留响应原样；若 2TB 没命中但 20TB / 30TB 命中，状态仍为 `rewritten`，须看 `annualHitCount` 判断年付测试。报告保留最近一次执行记录，按时间核对；根据采集结果确认完整源 ID，不推测新的 iOS SKU。报告兼容旧 v1 的仅 2TB 记录：旧行缺少 `to` 时补为 2TB 目标，缺少的 `annualHitCount` 从旧行次数计算。
 
@@ -90,11 +90,11 @@ https://cdn.jsdelivr.net/gh/crhywun/g1-acq@v7.0.0/g1-sku-scan.sgmodule
 
 | 输出标记 | 含义 |
 |---|---|
-| `g1-acq-v7 hits=N annualHits=N` | 当前脚本版本、三档总改写数与其中 2TB 年付改写数 |
+| `g1-acq-v7.1 hits=N annualHits=N` | 当前脚本版本、三档总改写数与其中 2TB 年付改写数 |
 | `源 SKU → 实际目标 xN` | 逐行记录完整源 ID、本次实际目标与该源改写次数 |
 | `fallback=75p` | 该行 20TB / 30TB 使用了正文中出现的对应 75p 备用档 |
 
-若没有新记录，先核对 VPN 连接、模块开关、当前配置的 HTTPS 解密、证书安装与信任、`one.google.com` hostname，再从 Google App 重新打开方案，以新记录的 `test.version` 或日志核对 `g1-acq-v7`。完整字段、采集与实机记录模板见 [Pro 年付测试与 SKU 扫描](docs/pro-annual-test.md)。
+若没有新记录，先核对 VPN 连接、模块开关、当前配置的 HTTPS 解密、证书安装与信任、`one.google.com` hostname，再从 Google App 重新打开方案，以新记录的 `test.version` 或日志核对 `g1-acq-v7.1`。完整字段、采集与实机记录模板见 [Pro 年付测试与 SKU 扫描](docs/pro-annual-test.md)。
 
 ## 工作范围与本地存储
 
@@ -116,7 +116,7 @@ https://cdn.jsdelivr.net/gh/crhywun/g1-acq@v7.0.0/g1-sku-scan.sgmodule
 | 文件 | 用途 |
 |---|---|
 | [g1-acq-v7.sgmodule](g1-acq-v7.sgmodule) | G1 ACQ 新主模块，三档合并改写与本地结果页 |
-| [g1-acq.js](g1-acq.js) | `g1-acq-v7` 响应脚本，完整 SKU 改写、独立回退与本地命中记录 |
+| [g1-acq.js](g1-acq.js) | `g1-acq-v7.1` 响应脚本，完整 SKU 改写、独立回退与本地命中记录 |
 | [g1-pro-annual-test.sgmodule](g1-pro-annual-test.sgmodule) | 引用同一主脚本的兼容入口，无需另外启用 |
 | [g1-sku-scan.sgmodule](g1-sku-scan.sgmodule) | 网页 SKU 被动采集模块，附本地结果页 |
 | [g1-sku-scan.js](g1-sku-scan.js) | 候选 ID 去重、计数与时间记录 |
